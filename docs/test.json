@@ -1,0 +1,107 @@
+{
+ "header":{
+  "format":"ORjson ext",
+  "version":"1.0",
+  "carrier":"Gottardo",
+  "custname":"Holger",
+  "custlogin":"Hepco",
+  "created":"2026-03-20 14:02:57",
+  "timezone":"CET"
+ },
+ "orders":[
+  {
+   "onum":"11000446",
+   "loadday":"2026-03-20",
+   "pckt1":"08:00:00",
+   "pckt2":"18:00:00",
+   "delvc":"83",
+   "delvday":"2026-03-23",
+   "cidlist":"0034047259900900815",
+   "oday":"2026-03-20",
+   "depe":"MA",
+   "inco":"02",
+   "servid":"v",
+   "addr":[
+    {
+     "af":"a",
+     "id1":"#kunde",
+     "id3":"10725",
+     "name1":"Hepco & Becker",
+     "street1":"Teststraße 5",
+     "city1":"Pirmasens",
+     "pc":"66955",
+     "cc":"DE"
+    },
+    {
+     "af":"g",
+     "id1":"#kunde",
+     "id3":"10725",
+     "name1":"Hepco & Becker",
+     "street1":"Teststraße 5",
+     "city1":"Pirmasens",
+     "pc":"66955",
+     "cc":"DE"
+    },
+    {
+     "af":"e",
+     "name1":"Oleg",
+     "name2":"Gut",
+     "street1":"Hauptstraße 99",
+     "city1":"Mannheim",
+     "pc":"68219",
+     "cc":"DE",
+     "person":"Oleg Gut",
+     "fone":"+49 55555555555"
+    },
+    {
+     "af":"h",
+     "id1":"1337",
+     "name1":"Testabholadresse",
+     "street1":"Hauptstraße 1",
+     "city1":"Berlin",
+     "pc":"10115",
+     "cc":"DE",
+     "person":"Testkontakt",
+     "fone":"01520123456789"
+    }
+   ],
+   "hi":[
+    {
+     "key":"01",
+     "arg":"+49 55555555555"
+    },
+    {
+     "key":"601",
+     "arg":"+49 555111555111"
+    },
+    {
+     "key":"607"
+    },
+    {
+     "key":"20"
+    },
+    {
+     "key":"51"
+    }
+   ],
+   "sl":[
+    {
+     "mark":"LS123456",
+     "q":1,
+     "pc":"FP",
+     "cont":"Ware",
+     "gweight":150000,
+     "dlength":1200,
+     "dwidth":800,
+     "dheight":1500,
+     "liter":1440
+    }
+   ],
+   "dg":[
+   ]
+  }
+ ],
+ "trailer":{
+  "count":"1"
+ }
+}

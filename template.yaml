@@ -1,0 +1,261 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  OrderRace Lbase Integration
+  SAM Template for the Serverless Architecture
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.12
+    Architectures:
+      - arm64
+  Api:
+    EndpointConfiguration: REGIONAL
+    BinaryMediaTypes:
+      - "*/*"
+
+Parameters:
+  FTPHost:
+    Type: String
+    Description: Hostname for the OrderRace FTP Server
+    Default: "ftp.orderrace.com"
+  FTPUser:
+    Type: String
+    Description: FTP Username
+    Default: "username"
+  FTPPassword:
+    Type: String
+    Description: FTP Password
+    NoEcho: true
+    Default: "password"
+
+Resources:
+  # ==========================================
+  # Storage Resources
+  # ==========================================
+  IngestBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-ingest-bucket-${AWS::AccountId}"
+
+  EgressBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: LambdaFtpFunctionS3InvokePermission
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt LambdaFtpFunction.Arn
+
+  OrderProtocolTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-OrderProtocol"
+      AttributeDefinitions:
+        - AttributeName: OrderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: OrderId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # ==========================================
+  # API Gateway
+  # ==========================================
+  # We let AWS SAM auto-generate the API Gateway behind the scenes by removing the explicit 
+  # OrderRaceApi resource and RestApiId properties. This fixes circular dependencies in complex stacks.
+  
+  # ==========================================
+  # Lambda Functions
+  # ==========================================
+  
+  # Lambda 1: Ingest & Convert
+  LambdaConvFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda_conv/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          INGEST_BUCKET: !Sub "${AWS::StackName}-ingest-bucket-${AWS::AccountId}"
+          PROTOCOL_TABLE: !Sub "${AWS::StackName}-OrderProtocol"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:PutObjectAcl
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:DeleteObject
+              Resource: !Sub "arn:aws:s3:::${AWS::StackName}-ingest-bucket-${AWS::AccountId}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Scan
+                - dynamodb:Query
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-OrderProtocol"
+      Events:
+        IngestApi:
+          Type: Api
+          Properties:
+            Path: /ingest
+            Method: post
+
+  # Lambda 2: Pull Data
+  LambdaPullFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda_pull/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          INGEST_BUCKET: !Sub "${AWS::StackName}-ingest-bucket-${AWS::AccountId}"
+          PROTOCOL_TABLE: !Sub "${AWS::StackName}-OrderProtocol"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:ListBucket
+              Resource:
+                - !Sub "arn:aws:s3:::${AWS::StackName}-ingest-bucket-${AWS::AccountId}"
+                - !Sub "arn:aws:s3:::${AWS::StackName}-ingest-bucket-${AWS::AccountId}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Scan
+                - dynamodb:Query
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-OrderProtocol"
+      Events:
+        PullApi:
+          Type: Api
+          Properties:
+            Path: /pull
+            Method: get
+
+  # Lambda 2b: Pull Ack
+  LambdaPullAckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda_pull_ack/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          PROTOCOL_TABLE: !Sub "${AWS::StackName}-OrderProtocol"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Scan
+                - dynamodb:Query
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-OrderProtocol"
+      Events:
+        PullAckApi:
+          Type: Api
+          Properties:
+            Path: /pull/ack
+            Method: post
+
+  # Lambda 3: Upload POD / Invoice
+  LambdaUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda_upload/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          EGRESS_BUCKET: !Sub "${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:PutObjectAcl
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:DeleteObject
+              Resource: !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}/*"
+      Events:
+        UploadApi:
+          Type: Api
+          Properties:
+            Path: /upload
+            Method: post
+
+  # Lambda 4: FTP Upload (Triggered by S3)
+  LambdaFtpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda_ftp/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          EGRESS_BUCKET: !Sub "${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+          FTP_HOST: !Ref FTPHost
+          FTP_USER: !Ref FTPUser
+          FTP_PASSWORD: !Ref FTPPassword
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:ListBucket
+              Resource:
+                - !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+                - !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}/*"
+  
+  LambdaFtpFunctionS3InvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFtpFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+
+  # Lambda 5: Document Serve
+  LambdaServeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda_serve/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          EGRESS_BUCKET: !Sub "${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:ListBucket
+              Resource:
+                - !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+                - !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}/*"
+      Events:
+        ServeApi:
+          Type: Api
+          Properties:
+            Path: /serve/{document_id}
+            Method: get
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL for Prod environment"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

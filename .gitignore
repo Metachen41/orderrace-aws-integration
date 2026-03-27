@@ -1,0 +1,37 @@
+# AWS SAM build artifacts
+.aws-sam/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# SAM config (may contain account-specific settings)
+samconfig.toml
+
+# Test artifacts
+tests/dummy_document.pdf
+
+# Local poller temp files
+src/local_poller/poller.log
