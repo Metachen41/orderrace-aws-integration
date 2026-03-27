@@ -12,7 +12,7 @@ dynamodb = boto3.resource('dynamodb')
 
 INGEST_BUCKET = os.environ.get('INGEST_BUCKET')
 PROTOCOL_TABLE = os.environ.get('PROTOCOL_TABLE')
-EXPECTED_TOKEN = "VtljtFfPz9LmBO7L9yZEF807bckqo3zS"
+EXPECTED_TOKEN = os.environ.get('API_TOKEN', '')
 VALID_TYPES = frozenset(('dfue', 'audit', 'orderauto', 'document'))
 
 

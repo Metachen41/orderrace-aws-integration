@@ -30,6 +30,10 @@ Parameters:
     Description: FTP Password
     NoEcho: true
     Default: "password"
+  ApiToken:
+    Type: String
+    Description: Shared secret token for the /ingest endpoint
+    NoEcho: true
 
 Resources:
   # ==========================================
@@ -82,6 +86,7 @@ Resources:
         Variables:
           INGEST_BUCKET: !Sub "${AWS::StackName}-ingest-bucket-${AWS::AccountId}"
           PROTOCOL_TABLE: !Sub "${AWS::StackName}-OrderProtocol"
+          API_TOKEN: !Ref ApiToken
       Policies:
         - Statement:
             - Effect: Allow

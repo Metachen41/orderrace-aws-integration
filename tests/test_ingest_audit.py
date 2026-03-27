@@ -3,8 +3,8 @@ import json
 import os
 
 # --- KONFIGURATION ---
-API_URL = "https://u2ovkcybvd.execute-api.eu-central-1.amazonaws.com/Prod"
-TOKEN = "VtljtFfPz9LmBO7L9yZEF807bckqo3zS"
+API_URL = os.environ.get("API_URL", "https://YOUR_API_ID.execute-api.eu-central-1.amazonaws.com/Prod")
+TOKEN = os.environ.get("API_TOKEN", "YOUR_SECRET_TOKEN")
 TEST_JSON_PATH = "../docs/test.json"
 
 

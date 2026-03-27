@@ -22,9 +22,7 @@ def lambda_handler(event, context):
             bucket_name = record['s3']['bucket']['name']
             object_key = record['s3']['object']['key']
             
-            # API URL aus Environment oder Request context zusammensetzen
-            # Beispiel: https://u2ovkcybvd.execute-api.eu-central-1.amazonaws.com/Prod/serve/{key}
-            base_url = os.environ.get("API_BASE_URL", "https://u2ovkcybvd.execute-api.eu-central-1.amazonaws.com/Prod/serve")
+            base_url = os.environ.get("API_BASE_URL", "https://YOUR_API_ID.execute-api.eu-central-1.amazonaws.com/Prod/serve")
             download_link = f"{base_url}/{object_key}"
             
             # Extrahiere onum (z.B. aus dem Key `pod/11000445_abc.pdf` -> 11000445)

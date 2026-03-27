@@ -7,7 +7,7 @@ import requests
 from pathlib import Path
 
 # --- KONFIGURATION ---
-API_BASE_URL = os.environ.get("API_BASE_URL", "https://u2ovkcybvd.execute-api.eu-central-1.amazonaws.com/Prod")
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://YOUR_API_ID.execute-api.eu-central-1.amazonaws.com/Prod")
 API_KEY = os.environ.get("API_KEY", "")
 
 LBASE_SDG_DIR = os.environ.get("LBASE_SDG_DIR", r"C:\Lbase\Import\SDG")

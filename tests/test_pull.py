@@ -4,7 +4,7 @@ import os
 
 # --- KONFIGURATION (Bitte anpassen!) ---
 # Trage hier deine API-Gateway-URL ein, die du aus dem SAM Deploy Output ("ApiUrl") erhältst:
-API_URL = "https://u2ovkcybvd.execute-api.eu-central-1.amazonaws.com/Prod"
+API_URL = os.environ.get("API_URL", "https://YOUR_API_ID.execute-api.eu-central-1.amazonaws.com/Prod")
 # (Wir gehen davon aus, dass `/pull` vorerst ohne API Key erreichbar ist, oder ein Token nutzt)
 
 def test_polling():
