@@ -35,3 +35,7 @@ tests/dummy_document.pdf
 
 # Local poller temp files
 src/local_poller/poller.log
+
+# External PDF documentation (not part of the codebase)
+docs/guettler/
+docs/orderrace/
