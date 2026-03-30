@@ -32,7 +32,7 @@ def test_ingest_audit():
 
     for run in (1, 2):
         print(f"\n--- TEST: Audit Run {run} fuer onum={onum} ---")
-        files = {'dfue_file': ('audit_auftrag.json', json_content, 'application/json')}
+        files = {'file': ('audit_auftrag.json', json_content, 'application/json')}
 
         try:
             response = requests.post(url, files=files, headers=headers)

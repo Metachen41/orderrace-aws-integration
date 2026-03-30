@@ -5,25 +5,223 @@
   "carrier":"Gottardo",
   "custname":"Holger",
   "custlogin":"Hepco",
-  "created":"2026-03-20 14:02:57",
-  "timezone":"CET"
+  "created":"2026-03-30 10:42:04",
+  "timezone":"CEST"
  },
  "orders":[
   {
-   "onum":"11000446",
-   "loadday":"2026-03-20",
+   "onum":"11000199",
+   "loadday":"2026-03-30",
    "pckt1":"08:00:00",
-   "pckt2":"18:00:00",
-   "delvc":"83",
-   "delvday":"2026-03-23",
-   "cidlist":"0034047259900900815",
-   "oday":"2026-03-20",
-   "depe":"MA",
+   "pckt2":"13:00:00",
+   "cidlist":"00340123456710000583 00340123456710000590 00340123456710000606 00340123456710000613 00340123456710000620",
+   "oday":"2026-03-10",
+   "depe":"BRL",
    "inco":"02",
    "servid":"v",
    "addr":[
     {
      "af":"a",
+     "id1":"1337",
+     "name1":"Testkunde 1",
+     "street1":"Teststraße 500",
+     "city1":"Berlin",
+     "pc":"10115",
+     "cc":"DE",
+     "person":"Testkontakt",
+     "fone":"01520123456789"
+    },
+    {
+     "af":"e",
+     "id1":"1337",
+     "name1":"Testkunde 1",
+     "street1":"Teststraße 500",
+     "city1":"Berlin",
+     "pc":"10115",
+     "cc":"DE",
+     "person":"Testkontakt",
+     "fone":"01520123456789"
+    },
+    {
+     "af":"g",
+     "id1":"#kunde",
+     "id3":"10725",
+     "name1":"Hepco & Becker",
+     "street1":"Teststraße 5",
+     "city1":"Pirmasens",
+     "pc":"66955",
+     "cc":"DE"
+    }
+   ],
+   "hi":[
+   ],
+   "sl":[
+    {
+     "q":5,
+     "pc":"EP",
+     "cont":"Ware",
+     "gweight":500000,
+     "dlength":1200,
+     "dwidth":800,
+     "dheight":1500,
+     "liter":7200
+    }
+   ],
+   "dg":[
+   ]
+  },
+  {
+   "onum":"11000320",
+   "loadday":"2026-03-30",
+   "pckt1":"08:00:00",
+   "pckt2":"20:00:00",
+   "cidlist":"00340472599009000017 00340472599009000024 00340472599009000031 00340472599009000048 00340472599009000055",
+   "oday":"2026-03-17",
+   "depe":"BRL",
+   "inco":"02",
+   "servid":"v",
+   "addr":[
+    {
+     "af":"a",
+     "id1":"#kunde",
+     "id3":"10725",
+     "name1":"Hepco & Becker",
+     "street1":"Teststraße 5",
+     "city1":"Pirmasens",
+     "pc":"66955",
+     "cc":"DE"
+    },
+    {
+     "af":"e",
+     "id1":"1337",
+     "name1":"Testkunde 1",
+     "street1":"Teststraße 500",
+     "city1":"Berlin",
+     "pc":"10115",
+     "cc":"DE",
+     "person":"Testkontakt",
+     "fone":"01520123456789"
+    },
+    {
+     "af":"g",
+     "id1":"#kunde",
+     "id3":"10725",
+     "name1":"Hepco & Becker",
+     "street1":"Teststraße 5",
+     "city1":"Pirmasens",
+     "pc":"66955",
+     "cc":"DE"
+    }
+   ],
+   "hi":[
+    {
+     "key":"01",
+     "arg":"+49 015209752090"
+    }
+   ],
+   "sl":[
+    {
+     "q":5,
+     "pc":"FP",
+     "cont":"Ware",
+     "gweight":900000,
+     "dlength":1200,
+     "dwidth":800,
+     "dheight":1500,
+     "liter":7200
+    }
+   ],
+   "dg":[
+   ]
+  },
+  {
+   "onum":"11000480",
+   "loadday":"2026-03-30",
+   "pckt1":"08:00:00",
+   "pckt2":"15:00:00",
+   "delvc":"83",
+   "delvday":"2026-03-31",
+   "cidlist":"0034047259900900879 0034047259900900888 0034047259900900897",
+   "oday":"2026-03-30",
+   "depe":"BRL",
+   "inco":"02",
+   "servid":"v",
+   "addr":[
+    {
+     "af":"a",
+     "id1":"#kunde",
+     "id3":"10725",
+     "name1":"Hepco & Becker",
+     "street1":"Teststraße 5",
+     "city1":"Pirmasens",
+     "pc":"66955",
+     "cc":"DE"
+    },
+    {
+     "af":"e",
+     "id1":"1337",
+     "name1":"Testabholadresse",
+     "street1":"Hauptstraße 1",
+     "city1":"Berlin",
+     "pc":"10115",
+     "cc":"DE",
+     "person":"Testkontakt",
+     "fone":"01520123456789"
+    },
+    {
+     "af":"g",
+     "id1":"#kunde",
+     "id3":"10725",
+     "name1":"Hepco & Becker",
+     "street1":"Teststraße 5",
+     "city1":"Pirmasens",
+     "pc":"66955",
+     "cc":"DE"
+    }
+   ],
+   "hi":[
+   ],
+   "sl":[
+    {
+     "q":3,
+     "pc":"FP",
+     "cont":"Ware",
+     "gweight":150000,
+     "dlength":1200,
+     "dwidth":800,
+     "dheight":1000,
+     "liter":2880
+    }
+   ],
+   "dg":[
+   ]
+  },
+  {
+   "onum":"11000481",
+   "loadday":"2026-03-30",
+   "pckt1":"08:00:00",
+   "pckt2":"17:30:00",
+   "delvc":"86",
+   "delvday":"2026-03-31",
+   "cidlist":"0034047259900900903 0034047259900900912 0034047259900900921 0034047259900900930 0034047259900900949 0034047259900900958 0034047259900900967 0034047259900900976 0034047259900900985",
+   "oday":"2026-03-30",
+   "depe":"PIR",
+   "inco":"02",
+   "servid":"v",
+   "addr":[
+    {
+     "af":"a",
+     "id1":"1337",
+     "name1":"Testabholadresse",
+     "street1":"Hauptstraße 1",
+     "city1":"Berlin",
+     "pc":"10115",
+     "cc":"DE",
+     "person":"Testkontakt",
+     "fone":"01520123456789"
+    },
+    {
+     "af":"e",
      "id1":"#kunde",
      "id3":"10725",
      "name1":"Hepco & Becker",
@@ -41,60 +239,24 @@
      "city1":"Pirmasens",
      "pc":"66955",
      "cc":"DE"
-    },
-    {
-     "af":"e",
-     "name1":"Oleg",
-     "name2":"Gut",
-     "street1":"Hauptstraße 99",
-     "city1":"Mannheim",
-     "pc":"68219",
-     "cc":"DE",
-     "person":"Oleg Gut",
-     "fone":"+49 55555555555"
-    },
-    {
-     "af":"h",
-     "id1":"1337",
-     "name1":"Testabholadresse",
-     "street1":"Hauptstraße 1",
-     "city1":"Berlin",
-     "pc":"10115",
-     "cc":"DE",
-     "person":"Testkontakt",
-     "fone":"01520123456789"
     }
    ],
    "hi":[
     {
-     "key":"01",
-     "arg":"+49 55555555555"
-    },
-    {
-     "key":"601",
-     "arg":"+49 555111555111"
-    },
-    {
      "key":"607"
-    },
-    {
-     "key":"20"
-    },
-    {
-     "key":"51"
     }
    ],
    "sl":[
     {
-     "mark":"LS123456",
-     "q":1,
-     "pc":"FP",
-     "cont":"Ware",
-     "gweight":150000,
-     "dlength":1200,
-     "dwidth":800,
-     "dheight":1500,
-     "liter":1440
+     "mark":"LS55555",
+     "q":9,
+     "pc":"KT",
+     "cont":"Schuhe",
+     "gweight":290000,
+     "dlength":500,
+     "dwidth":500,
+     "dheight":500,
+     "liter":1125
     }
    ],
    "dg":[
@@ -102,6 +264,6 @@
   }
  ],
  "trailer":{
-  "count":"1"
+  "count":"4"
  }
 }

@@ -38,13 +38,13 @@ Falls `typ` nicht angegeben wird, erkennt unser System automatisch anhand des In
 
 ### 3. Aufbau der Requests
 
-Alle Requests verwenden `multipart/form-data` als Content-Type.
+Alle Requests verwenden `multipart/form-data` als Content-Type. Das Datei-Feld heißt einheitlich **`file`** -- der `typ`-Parameter in der URL bestimmt, wie die Datei verarbeitet wird.
 
 #### Fall A: DFÜ mit Aufträgen (ein oder mehrere)
 
 ```bash
 curl -X POST "https://...Prod/ingest?token=TOKEN&typ=dfue" \
-  -F "dfue_file=@auftrag.json;type=application/json"
+  -F "file=@auftrag.json;type=application/json"
 ```
 
 Die JSON-Datei enthält ein `orders[]`-Array. Jeder Auftrag darin muss ein Feld `onum` haben. Unser System splittet automatisch und erzeugt pro Auftrag eine eigene Datei.
@@ -53,7 +53,7 @@ Die JSON-Datei enthält ein `orders[]`-Array. Jeder Auftrag darin muss ein Feld 
 
 ```bash
 curl -X POST "https://...Prod/ingest?token=TOKEN&typ=audit" \
-  -F "dfue_file=@audit_update.json;type=application/json"
+  -F "file=@audit_update.json;type=application/json"
 ```
 
 Gleiches JSON-Format wie DFÜ. Unser System erkennt anhand von `typ=audit`, dass es sich um eine Korrektur handelt, und erzeugt eine neue Version.
@@ -62,7 +62,7 @@ Gleiches JSON-Format wie DFÜ. Unser System erkennt anhand von `typ=audit`, dass
 
 ```bash
 curl -X POST "https://...Prod/ingest?token=TOKEN&typ=orderauto" \
-  -F "dfue_file=@orderauto_data.json;type=application/json"
+  -F "file=@orderauto_data.json;type=application/json"
 ```
 
 Die JSON wird unverändert gespeichert.
@@ -71,11 +71,10 @@ Die JSON wird unverändert gespeichert.
 
 ```bash
 curl -X POST "https://...Prod/ingest?token=TOKEN&typ=document" \
-  -F "document_file_1=@muku#DE-74078-Heilbronn#NEU#00058#Rechnung.pdf;type=application/pdf" \
-  -F "doc_type_1=RE"
+  -F "file=@/tmp/xyz123.pdf;filename=muku#DE-74078-Heilbronn#NEU#00058#Rechnung.pdf;type=application/pdf"
 ```
 
-Die Auftragsnummer wird aus dem Dateinamen gelesen (4. Segment, getrennt durch `#`):
+Falls die lokale Datei einen temporären Namen hat, kann der gewünschte Dateiname per `;filename=...` im cURL-Parameter überschrieben werden. Die Auftragsnummer wird aus dem Dateinamen gelesen (4. Segment, getrennt durch `#`):
 ```text
 [Login]#[LKZ-PLZ-Ort]#[Dokumentname]#[onum]#[Dateiname]
 ```

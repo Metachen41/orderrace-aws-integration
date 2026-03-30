@@ -25,7 +25,7 @@ def test_ingest_document():
 
     print(f"--- STARTE TEST: Senden von Dokument an {API_URL}/ingest ---")
     
-    url = f"{API_URL}/ingest"
+    url = f"{API_URL}/ingest?typ=document"
     
     pdf_path = create_dummy_pdf()
         
@@ -33,11 +33,10 @@ def test_ingest_document():
         pdf_content = f.read()
 
     files = {
-        'document_file_1': (ORDER_RACE_FILENAME, pdf_content, 'application/pdf')
+        'file': (ORDER_RACE_FILENAME, pdf_content, 'application/pdf')
     }
     
     data = {
-        'payload_type': 'DOCUMENT',
         'doc_type_1': 'ZOLL'
     }
     headers = {

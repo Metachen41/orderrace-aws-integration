@@ -22,7 +22,7 @@ def test_ingest_orderauto():
 
     url = f"{API_URL}/ingest?typ=orderauto"
     headers = {'Authorization': f'Bearer {TOKEN}'}
-    files = {'dfue_file': ('orderauto_data.json', json_content, 'application/json')}
+    files = {'file': ('orderauto_data.json', json_content, 'application/json')}
 
     print(f"--- TEST: OrderAuto an {url} ---")
 

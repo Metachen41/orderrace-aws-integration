@@ -26,7 +26,7 @@ def test_ingest_dfue():
         return
 
     url = f"{API_URL}/ingest?typ=dfue"
-    files = {'dfue_file': ('auftrag.json', json_content, 'application/json')}
+    files = {'file': ('auftrag.json', json_content, 'application/json')}
     headers = {'Authorization': f'Bearer {TOKEN}'}
 
     try:
@@ -65,7 +65,7 @@ def test_ingest_dfue_multi_order():
 
     url = f"{API_URL}/ingest?typ=dfue"
     json_content = json.dumps(multi_json, ensure_ascii=False)
-    files = {'dfue_file': ('multi_auftrag.json', json_content, 'application/json')}
+    files = {'file': ('multi_auftrag.json', json_content, 'application/json')}
     headers = {'Authorization': f'Bearer {TOKEN}'}
 
     try:

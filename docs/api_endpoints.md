@@ -29,9 +29,12 @@ Unterstützt drei Varianten:
 - Nur `document_file_*` vorhanden -> `document`
 
 ### Request Body (`multipart/form-data`)
-- `dfue_file`: Die JSON/Auftragsdatei (File) -- erforderlich für `dfue`, `audit`, `orderauto`
-- `document_file_N`: Dokument (PDF) mit inkrementellem N (File)
+- `file`: Die Datei (JSON oder PDF). Der `typ`-Parameter bestimmt die Interpretation:
+  - `typ=dfue/audit/orderauto` -> JSON-Auftragsdatei
+  - `typ=document` -> Dokument (PDF)
 - `doc_type_N`: Zuordnungscode (z.B. LS, RE) für das Dokument N (String)
+
+**Rückwärtskompatibel** werden auch `dfue_file` und `document_file_N` weiterhin akzeptiert.
 
 ### Ableitung der Auftragsnummer (`onum`)
 - **DFÜ/Audit**: Pro Auftrag aus `orders[].onum` in der JSON
@@ -116,25 +119,25 @@ Unterstützt drei Varianten:
 **DFÜ (Single oder Multi-Order):**
 ```bash
 curl -X POST "https://API_URL/ingest?token=TOKEN&typ=dfue" \
-  -F "dfue_file=@auftrag.json;type=application/json"
+  -F "file=@auftrag.json;type=application/json"
 ```
 
 **Audit-Update:**
 ```bash
 curl -X POST "https://API_URL/ingest?token=TOKEN&typ=audit" \
-  -F "dfue_file=@audit_update.json;type=application/json"
+  -F "file=@audit_update.json;type=application/json"
 ```
 
 **OrderAuto:**
 ```bash
 curl -X POST "https://API_URL/ingest?token=TOKEN&typ=orderauto" \
-  -F "dfue_file=@orderauto_data.json;type=application/json"
+  -F "file=@orderauto_data.json;type=application/json"
 ```
 
-**Dokument:**
+**Dokument (mit strukturiertem Dateinamen):**
 ```bash
 curl -X POST "https://API_URL/ingest?token=TOKEN&typ=document" \
-  -F "document_file_1=@muku#DE-74078-Heilbronn#NEU#00058#Rechnung.pdf;type=application/pdf" \
+  -F "file=@/tmp/xyz123.pdf;filename=muku#DE-74078-Heilbronn#NEU#00058#Rechnung.pdf;type=application/pdf" \
   -F "doc_type_1=RE"
 ```
 

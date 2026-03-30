@@ -124,7 +124,7 @@ def resolve_typ(event, has_dfue, has_documents):
         return 'dfue', None
     if has_documents:
         return 'document', None
-    return None, 'No typ parameter given and no processable content (dfue_file or document_file_*) found'
+    return None, 'No typ parameter given and no processable content (file, dfue_file, or document_file_*) found'
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +356,7 @@ def lambda_handler(event, context):
         dfue_data = None
         documents = []
         pending_doc_types = {}
+        generic_files = []
 
         for part in multipart_data.parts:
             cd = get_header(part.headers, 'Content-Disposition')
@@ -363,6 +364,8 @@ def lambda_handler(event, context):
 
             if name == 'dfue_file':
                 dfue_data = part.content
+            elif name == 'file':
+                generic_files.append(part)
             elif name and name.startswith('document_file_'):
                 filename = extract_filename(cd) or f"doc_{uuid.uuid4().hex[:8]}.pdf"
                 idx = name.replace('document_file_', '')
@@ -380,6 +383,30 @@ def lambda_handler(event, context):
             elif name and name.startswith('doc_type_'):
                 idx = name.replace('doc_type_', '')
                 pending_doc_types[idx] = part.text.strip()
+
+        # -- Resolve generic "file" parts based on typ -------------------------
+        query_params = event.get('queryStringParameters') or {}
+        explicit_typ = (query_params.get('typ') or '').strip().lower()
+
+        for i, part in enumerate(generic_files):
+            cd = get_header(part.headers, 'Content-Disposition')
+            if explicit_typ in ('dfue', 'audit', 'orderauto'):
+                if dfue_data is None:
+                    dfue_data = part.content
+            else:
+                filename = extract_filename(cd) or f"doc_{uuid.uuid4().hex[:8]}.pdf"
+                idx = str(i + 1)
+                parsed = parse_document_filename(filename)
+                documents.append({
+                    'index': idx,
+                    'filename': filename,
+                    'content': part.content,
+                    'stored_filename': parsed['stored_filename'],
+                    'document_label': parsed['document_label'],
+                    'parsed_order_id': parsed['order_id'],
+                    'login': parsed['login'],
+                    'recipient_hint': parsed['recipient_hint'],
+                })
 
         for doc in documents:
             dt = pending_doc_types.get(doc['index'])
