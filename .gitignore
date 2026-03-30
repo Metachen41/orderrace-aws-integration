@@ -36,6 +36,9 @@ tests/dummy_document.pdf
 # Local poller temp files
 src/local_poller/poller.log
 
+# Dashboard config (contains deployment-specific Cognito/API IDs)
+src/dashboard/config.js
+
 # External PDF documentation (not part of the codebase)
 docs/guettler/
 docs/orderrace/

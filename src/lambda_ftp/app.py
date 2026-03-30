@@ -4,10 +4,35 @@ import boto3
 import uuid
 from ftplib import FTP
 
+dynamodb = boto3.resource('dynamodb')
+
 EGRESS_BUCKET = os.environ.get('EGRESS_BUCKET')
+EVENT_LOG_TABLE = os.environ.get('EVENT_LOG_TABLE')
 FTP_HOST = os.environ.get('FTP_HOST')
 FTP_USER = os.environ.get('FTP_USER')
 FTP_PASSWORD = os.environ.get('FTP_PASSWORD')
+
+
+def _log_event(event_type, status_code, order_id='', details='', error_msg=''):
+    if not EVENT_LOG_TABLE:
+        return
+    try:
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        table = dynamodb.Table(EVENT_LOG_TABLE)
+        table.put_item(Item={
+            'EventDate': now.strftime('%Y-%m-%d'),
+            'Timestamp': int(now.timestamp() * 1000),
+            'EventId': uuid.uuid4().hex,
+            'EventType': event_type,
+            'OrderId': order_id,
+            'StatusCode': status_code,
+            'ErrorMessage': error_msg,
+            'Details': details,
+            'TTL': int(now.timestamp()) + 90 * 86400,
+        })
+    except Exception as ex:
+        print(f"EventLog write failed: {ex}")
 
 def lambda_handler(event, context):
     """
@@ -55,10 +80,12 @@ def lambda_handler(event, context):
                 #        ftp.storbinary(f"STOR doclink_{onum}.csv", f)
                 print(f"FTP Upload for onum {onum} simulated: {csv_content.strip()}")
         
+        _log_event('FTP_TRIGGER', 200, details=f"Processed {len(event.get('Records', []))} records")
         return {
             'statusCode': 200,
             'body': json.dumps({'message': 'FTP Upload logic triggered'})
         }
     except Exception as e:
         print(f"Error in FTP Trigger: {str(e)}")
+        _log_event('FTP_ERROR', 500, error_msg=str(e))
         raise e

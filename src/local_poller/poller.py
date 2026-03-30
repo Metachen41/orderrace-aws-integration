@@ -32,22 +32,21 @@ def ensure_directories():
         Path(d).mkdir(parents=True, exist_ok=True)
 
 
-def resolve_target_dir(file_key):
-    """Routes an S3 file key to the correct local directory."""
+def resolve_target_dir(file_key, order_id):
+    """Routes an S3 file key to the correct local directory, grouped by order_id."""
     filename = file_key.split('/')[-1]
 
     if file_key.startswith('sdg/'):
-        if _VERSION_PATTERN.search(filename):
-            return LBASE_SDG_UPDATE_DIR, filename
-        return LBASE_SDG_DIR, filename
+        base = LBASE_SDG_UPDATE_DIR if _VERSION_PATTERN.search(filename) else LBASE_SDG_DIR
+        return os.path.join(base, order_id), filename
 
     if file_key.startswith('docs/'):
-        return LBASE_DOC_DIR, filename
+        return os.path.join(LBASE_DOC_DIR, order_id), filename
 
     if file_key.startswith('orderauto/'):
-        return LBASE_ORDERAUTO_DIR, filename
+        return os.path.join(LBASE_ORDERAUTO_DIR, order_id), filename
 
-    return LBASE_DOC_DIR, filename
+    return os.path.join(LBASE_DOC_DIR, order_id), filename
 
 
 def fetch_pending_orders():
@@ -124,7 +123,8 @@ def main():
             file_key = download.get("file_key", "")
             url = download.get("url", "")
 
-            target_dir, filename = resolve_target_dir(file_key)
+            target_dir, filename = resolve_target_dir(file_key, order_id)
+            Path(target_dir).mkdir(parents=True, exist_ok=True)
             target_path = os.path.join(target_dir, filename)
 
             logging.info(f"  Lade herunter: {filename} -> {target_path}")

@@ -15,6 +15,14 @@ Globals:
     EndpointConfiguration: REGIONAL
     BinaryMediaTypes:
       - "*/*"
+    Auth:
+      Authorizers:
+        CognitoAdminAuth:
+          UserPoolArn: !GetAtt AdminUserPool.Arn
+    Cors:
+      AllowMethods: "'GET,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"
 
 Parameters:
   FTPHost:
@@ -34,6 +42,18 @@ Parameters:
     Type: String
     Description: Shared secret token for the /ingest endpoint
     NoEcho: true
+  AlertEmail1:
+    Type: String
+    Description: Primary e-mail address for error alerts
+    Default: ""
+  AlertEmail2:
+    Type: String
+    Description: Secondary e-mail address for error alerts (optional)
+    Default: ""
+
+Conditions:
+  HasAlertEmail1: !Not [!Equals [!Ref AlertEmail1, ""]]
+  HasAlertEmail2: !Not [!Equals [!Ref AlertEmail2, ""]]
 
 Resources:
   # ==========================================
@@ -86,6 +106,7 @@ Resources:
         Variables:
           INGEST_BUCKET: !Sub "${AWS::StackName}-ingest-bucket-${AWS::AccountId}"
           PROTOCOL_TABLE: !Sub "${AWS::StackName}-OrderProtocol"
+          EVENT_LOG_TABLE: !Sub "${AWS::StackName}-EventLog"
           API_TOKEN: !Ref ApiToken
       Policies:
         - Statement:
@@ -106,6 +127,10 @@ Resources:
                 - dynamodb:Scan
                 - dynamodb:Query
               Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-OrderProtocol"
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-EventLog"
       Events:
         IngestApi:
           Type: Api
@@ -123,6 +148,7 @@ Resources:
         Variables:
           INGEST_BUCKET: !Sub "${AWS::StackName}-ingest-bucket-${AWS::AccountId}"
           PROTOCOL_TABLE: !Sub "${AWS::StackName}-OrderProtocol"
+          EVENT_LOG_TABLE: !Sub "${AWS::StackName}-EventLog"
       Policies:
         - Statement:
             - Effect: Allow
@@ -142,6 +168,10 @@ Resources:
                 - dynamodb:Scan
                 - dynamodb:Query
               Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-OrderProtocol"
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-EventLog"
       Events:
         PullApi:
           Type: Api
@@ -158,6 +188,7 @@ Resources:
       Environment:
         Variables:
           PROTOCOL_TABLE: !Sub "${AWS::StackName}-OrderProtocol"
+          EVENT_LOG_TABLE: !Sub "${AWS::StackName}-EventLog"
       Policies:
         - Statement:
             - Effect: Allow
@@ -169,6 +200,10 @@ Resources:
                 - dynamodb:Scan
                 - dynamodb:Query
               Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-OrderProtocol"
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-EventLog"
       Events:
         PullAckApi:
           Type: Api
@@ -185,6 +220,7 @@ Resources:
       Environment:
         Variables:
           EGRESS_BUCKET: !Sub "${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+          EVENT_LOG_TABLE: !Sub "${AWS::StackName}-EventLog"
       Policies:
         - Statement:
             - Effect: Allow
@@ -195,6 +231,10 @@ Resources:
                 - s3:GetObjectAcl
                 - s3:DeleteObject
               Resource: !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-EventLog"
       Events:
         UploadApi:
           Type: Api
@@ -211,6 +251,7 @@ Resources:
       Environment:
         Variables:
           EGRESS_BUCKET: !Sub "${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+          EVENT_LOG_TABLE: !Sub "${AWS::StackName}-EventLog"
           FTP_HOST: !Ref FTPHost
           FTP_USER: !Ref FTPUser
           FTP_PASSWORD: !Ref FTPPassword
@@ -224,6 +265,10 @@ Resources:
               Resource:
                 - !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}"
                 - !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-EventLog"
   
   LambdaFtpFunctionS3InvokePermission:
     Type: AWS::Lambda::Permission
@@ -243,6 +288,7 @@ Resources:
       Environment:
         Variables:
           EGRESS_BUCKET: !Sub "${AWS::StackName}-egress-bucket-${AWS::AccountId}"
+          EVENT_LOG_TABLE: !Sub "${AWS::StackName}-EventLog"
       Policies:
         - Statement:
             - Effect: Allow
@@ -253,6 +299,10 @@ Resources:
               Resource:
                 - !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}"
                 - !Sub "arn:aws:s3:::${AWS::StackName}-egress-bucket-${AWS::AccountId}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-EventLog"
       Events:
         ServeApi:
           Type: Api
@@ -260,7 +310,368 @@ Resources:
             Path: /serve/{document_id}
             Method: get
 
+  # ==========================================
+  # Cognito (Admin Dashboard Authentication)
+  # ==========================================
+  AdminUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${AWS::StackName}-admin-pool"
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+
+  AdminUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${AWS::StackName}-dashboard-client"
+      UserPoolId: !Ref AdminUserPool
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+
+  # ==========================================
+  # Dashboard Hosting (S3 + CloudFront)
+  # ==========================================
+  DashboardBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-dashboard-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  DashboardBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DashboardBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${DashboardBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${DashboardDistribution}"
+
+  DashboardOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-dashboard-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  DashboardDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: DashboardS3Origin
+            DomainName: !GetAtt DashboardBucket.RegionalDomainName
+            OriginAccessControlId: !Ref DashboardOAC
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: DashboardS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+          Compress: true
+          DefaultTTL: 86400
+          MinTTL: 0
+          MaxTTL: 31536000
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+        PriceClass: PriceClass_100
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  # ==========================================
+  # EventLog Table
+  # ==========================================
+  EventLogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-EventLog"
+      AttributeDefinitions:
+        - AttributeName: EventDate
+          AttributeType: S
+        - AttributeName: Timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: EventDate
+          KeyType: HASH
+        - AttributeName: Timestamp
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: TTL
+        Enabled: true
+
+  # ==========================================
+  # Lambda Admin (Dashboard API)
+  # ==========================================
+  LambdaAdminFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda_admin/
+      Handler: app.lambda_handler
+      Timeout: 15
+      Environment:
+        Variables:
+          PROTOCOL_TABLE: !Sub "${AWS::StackName}-OrderProtocol"
+          EVENT_LOG_TABLE: !Sub "${AWS::StackName}-EventLog"
+          INGEST_BUCKET: !Sub "${AWS::StackName}-ingest-bucket-${AWS::AccountId}"
+          STACK_NAME: !Ref AWS::StackName
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Scan
+                - dynamodb:Query
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-OrderProtocol"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-EventLog"
+            - Effect: Allow
+              Action:
+                - cloudwatch:GetMetricData
+                - cloudwatch:GetMetricStatistics
+                - cloudwatch:ListMetrics
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub "arn:aws:s3:::${AWS::StackName}-ingest-bucket-${AWS::AccountId}/*"
+      Events:
+        AdminStats:
+          Type: Api
+          Properties:
+            Path: /admin/api/stats
+            Method: get
+            Auth:
+              Authorizer: CognitoAdminAuth
+        AdminOrders:
+          Type: Api
+          Properties:
+            Path: /admin/api/orders
+            Method: get
+            Auth:
+              Authorizer: CognitoAdminAuth
+        AdminOrderDetail:
+          Type: Api
+          Properties:
+            Path: /admin/api/orders/{orderId}
+            Method: get
+            Auth:
+              Authorizer: CognitoAdminAuth
+        AdminEvents:
+          Type: Api
+          Properties:
+            Path: /admin/api/events
+            Method: get
+            Auth:
+              Authorizer: CognitoAdminAuth
+        AdminMetrics:
+          Type: Api
+          Properties:
+            Path: /admin/api/metrics
+            Method: get
+            Auth:
+              Authorizer: CognitoAdminAuth
+
+  # ==========================================
+  # SNS + CloudWatch Alarms (Error Alerts)
+  # ==========================================
+  ErrorAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AWS::StackName}-error-alerts"
+
+  AlertSubscription1:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail1
+    Properties:
+      TopicArn: !Ref ErrorAlarmTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail1
+
+  AlertSubscription2:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail2
+    Properties:
+      TopicArn: !Ref ErrorAlarmTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail2
+
+  LambdaConvErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-conv-errors"
+      AlarmDescription: "Errors in Lambda Ingest/Convert function"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaConvFunction
+      AlarmActions:
+        - !Ref ErrorAlarmTopic
+
+  LambdaPullErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-pull-errors"
+      AlarmDescription: "Errors in Lambda Pull function"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaPullFunction
+      AlarmActions:
+        - !Ref ErrorAlarmTopic
+
+  LambdaPullAckErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-pullack-errors"
+      AlarmDescription: "Errors in Lambda PullAck function"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaPullAckFunction
+      AlarmActions:
+        - !Ref ErrorAlarmTopic
+
+  LambdaUploadErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-upload-errors"
+      AlarmDescription: "Errors in Lambda Upload function"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaUploadFunction
+      AlarmActions:
+        - !Ref ErrorAlarmTopic
+
+  LambdaFtpErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-ftp-errors"
+      AlarmDescription: "Errors in Lambda FTP function"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaFtpFunction
+      AlarmActions:
+        - !Ref ErrorAlarmTopic
+
+  LambdaServeErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-serve-errors"
+      AlarmDescription: "Errors in Lambda Serve function"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaServeFunction
+      AlarmActions:
+        - !Ref ErrorAlarmTopic
+
+  LambdaAdminErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-admin-errors"
+      AlarmDescription: "Errors in Lambda Admin function"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaAdminFunction
+      AlarmActions:
+        - !Ref ErrorAlarmTopic
+
 Outputs:
   ApiUrl:
     Description: "API Gateway endpoint URL for Prod environment"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  DashboardUrl:
+    Description: "CloudFront URL for the Admin Dashboard"
+    Value: !Sub "https://${DashboardDistribution.DomainName}"
+  CognitoUserPoolId:
+    Description: "Cognito User Pool ID (needed for admin user creation)"
+    Value: !Ref AdminUserPool
+  CognitoAppClientId:
+    Description: "Cognito App Client ID (needed for dashboard login)"
+    Value: !Ref AdminUserPoolClient

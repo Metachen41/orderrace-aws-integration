@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrderRace Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Login View -->
+  <div id="login-view">
+    <div class="login-card">
+      <h1>OrderRace Admin</h1>
+      <p>Melden Sie sich an, um das Dashboard zu nutzen.</p>
+      <div id="login-error" class="error-msg"></div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">E-Mail</label>
+          <input type="email" id="login-email" placeholder="admin@firma.de" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Passwort</label>
+          <input type="password" id="login-password" placeholder="Passwort" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn">Anmelden</button>
+      </form>
+
+      <!-- New Password (forced change) -->
+      <form id="new-password-form" style="display:none">
+        <p style="margin-bottom:16px;color:var(--text-secondary);font-size:13px;">Bitte vergeben Sie ein neues Passwort (min. 12 Zeichen).</p>
+        <div class="form-group">
+          <label for="new-password">Neues Passwort</label>
+          <input type="password" id="new-password" placeholder="Min. 12 Zeichen" required minlength="12">
+        </div>
+        <button type="submit" class="btn btn-primary">Passwort setzen</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard View -->
+  <div id="dashboard-view">
+    <div class="topbar">
+      <h1>OrderRace Admin</h1>
+      <div class="topbar-actions">
+        <span class="user-info" id="user-info"></span>
+        <button class="btn btn-sm btn-ghost" onclick="app.refresh()">Aktualisieren</button>
+        <button class="btn btn-sm btn-ghost" onclick="app.logout()">Abmelden</button>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="overview">Uebersicht</button>
+      <button class="nav-tab" data-tab="orders">Auftraege</button>
+      <button class="nav-tab" data-tab="events">Event-Log</button>
+      <button class="nav-tab" data-tab="errors">Fehler</button>
+    </div>
+
+    <div class="content">
+      <!-- Overview Tab -->
+      <div class="tab-content active" id="tab-overview">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="label">Gesamt-Auftraege</div><div class="value accent" id="stat-total">-</div></div>
+          <div class="stat-card"><div class="label">Heute</div><div class="value accent" id="stat-today">-</div></div>
+          <div class="stat-card"><div class="label">Offene Downloads</div><div class="value warning" id="stat-pending">-</div></div>
+          <div class="stat-card"><div class="label">Verarbeitet</div><div class="value success" id="stat-processed">-</div></div>
+          <div class="stat-card"><div class="label">Fehler heute</div><div class="value danger" id="stat-errors">-</div></div>
+          <div class="stat-card"><div class="label">Dateien gesamt</div><div class="value accent" id="stat-files">-</div></div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-card">
+            <h3>Auftraege nach Typ</h3>
+            <canvas id="chart-types" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>API-Aufrufe (letzte 7 Tage)</h3>
+            <canvas id="chart-api" height="200"></canvas>
+          </div>
+        </div>
+        <div class="table-card">
+          <h3>Letzte Imports</h3>
+          <table>
+            <thead><tr><th>Zeitpunkt</th><th>Order-ID</th><th>Typ</th><th>Dateien</th><th>Status</th></tr></thead>
+            <tbody id="recent-orders-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div class="tab-content" id="tab-orders">
+        <div class="table-card">
+          <h3>Alle Auftraege</h3>
+          <table>
+            <thead><tr><th>Zeitpunkt</th><th>Order-ID</th><th>Typ</th><th>Dateien</th><th>Offen</th><th>Verarbeitet</th><th>Version</th><th>Status</th></tr></thead>
+            <tbody id="all-orders-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Events Tab -->
+      <div class="tab-content" id="tab-events">
+        <div class="table-card">
+          <h3>Event-Log (letzte 7 Tage)</h3>
+          <table>
+            <thead><tr><th>Zeitpunkt</th><th>Typ</th><th>Order-ID</th><th>Status</th><th>Details</th></tr></thead>
+            <tbody id="events-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Errors Tab -->
+      <div class="tab-content" id="tab-errors">
+        <div class="table-card">
+          <h3>Fehler-Log</h3>
+          <table>
+            <thead><tr><th>Zeitpunkt</th><th>Typ</th><th>Order-ID</th><th>Fehlermeldung</th></tr></thead>
+            <tbody id="errors-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Detail Overlay -->
+    <div class="overlay" id="order-overlay">
+      <div class="detail-panel">
+        <button class="close-btn" onclick="app.closeDetail()">&times;</button>
+        <h2 id="detail-title">Auftrags-Detail</h2>
+        <div class="detail-grid" id="detail-grid"></div>
+        <h3 style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;">Dateien</h3>
+        <ul class="file-list" id="detail-files"></ul>
+        <h3 style="font-size:14px;color:var(--text-secondary);margin:20px 0 12px;">Events</h3>
+        <div id="detail-events"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

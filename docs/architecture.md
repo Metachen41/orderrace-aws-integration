@@ -105,3 +105,20 @@ Sobald im Lbase neue Status-Updates oder Dokumente (z.B. POD/Rechnung) verfügba
 
 ### 4. Serve (Freigabe)
 Klickt ein Kunde in OrderRace auf den von der FTP-Rückmeldung erzeugten Link, ruft dies den `/serve/{document_id}` Endpunkt auf. Die Funktion `lambda_serve` prüft kurz die Gültigkeit, generiert einen temporären S3-Download-Link und führt einen HTTP 302 Redirect direkt zur PDF-Datei im Browser des Kunden aus.
+
+### 5. Admin Dashboard & Monitoring
+
+Das System verfuegt ueber ein geschuetztes Admin-Dashboard:
+
+- **Hosting**: Statische SPA in S3, ausgeliefert ueber CloudFront (HTTPS)
+- **Authentifizierung**: AWS Cognito User Pool (kein Self-Sign-Up, nur Admin-erstellte Accounts)
+- **Admin API**: `lambda_admin` bedient `/admin/api/*`-Routen mit Cognito-Authorizer
+- **Event-Logging**: Alle Lambda-Funktionen schreiben strukturierte Events in eine `EventLogTable` (DynamoDB mit TTL)
+- **Fehler-Benachrichtigungen**: CloudWatch Alarms auf alle 7 Lambda-Funktionen, bei Fehlern Benachrichtigung per SNS (E-Mail)
+
+**Dashboard-Bereiche:**
+- Uebersicht mit Statistiken (Auftraege gesamt, heute, nach Typ, Fehlerquote)
+- Auftragslistee mit Status-Anzeige (Offen / Teilweise / Abgeholt)
+- Auftrags-Detail mit Dateistatus und Event-Verlauf
+- Event-Log und Fehler-Log
+- CloudWatch-Metriken (API-Aufrufe, Latenz, Fehler pro Lambda)

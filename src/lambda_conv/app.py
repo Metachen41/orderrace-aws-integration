@@ -12,8 +12,41 @@ dynamodb = boto3.resource('dynamodb')
 
 INGEST_BUCKET = os.environ.get('INGEST_BUCKET')
 PROTOCOL_TABLE = os.environ.get('PROTOCOL_TABLE')
+EVENT_LOG_TABLE = os.environ.get('EVENT_LOG_TABLE')
 EXPECTED_TOKEN = os.environ.get('API_TOKEN', '')
 VALID_TYPES = frozenset(('dfue', 'audit', 'orderauto', 'document'))
+
+
+def _log_event(event_type, status_code, event=None, order_id='', typ='', error_msg='', details=''):
+    if not EVENT_LOG_TABLE:
+        return
+    try:
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        table = dynamodb.Table(EVENT_LOG_TABLE)
+        source_ip = ''
+        http_method = ''
+        if event:
+            rc = event.get('requestContext', {})
+            identity = rc.get('identity', {})
+            source_ip = identity.get('sourceIp', '')
+            http_method = rc.get('httpMethod', '')
+        table.put_item(Item={
+            'EventDate': now.strftime('%Y-%m-%d'),
+            'Timestamp': int(now.timestamp() * 1000),
+            'EventId': uuid.uuid4().hex,
+            'EventType': event_type,
+            'OrderId': order_id,
+            'Typ': typ,
+            'HttpMethod': http_method,
+            'SourceIp': source_ip,
+            'StatusCode': status_code,
+            'ErrorMessage': error_msg,
+            'Details': details,
+            'TTL': int(now.timestamp()) + 90 * 86400,
+        })
+    except Exception as ex:
+        print(f"EventLog write failed: {ex}")
 
 
 # ---------------------------------------------------------------------------
@@ -484,6 +517,10 @@ def lambda_handler(event, context):
         if len(all_results) == 1:
             resp_body['order_id'] = next(iter(all_results))
 
+        oid = resp_body.get('order_id', ','.join(all_results.keys()))
+        _log_event('INGEST_SUCCESS', 200, event, order_id=oid, typ=typ,
+                    details=f"{len(all_files)} files saved")
+
         return {
             'statusCode': 200,
             'body': json.dumps(resp_body),
@@ -491,6 +528,7 @@ def lambda_handler(event, context):
 
     except Exception as e:
         print(f"Error processing ingest: {str(e)}")
+        _log_event('INGEST_ERROR', 500, event, error_msg=str(e))
         return _resp(500, 'Internal server error', str(e))
 
 
